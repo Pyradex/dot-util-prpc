@@ -33,7 +33,7 @@ intents = nextcord.Intents.default()
 intents.members = True
 intents.message_content = True
 
-bot = commands.Bot(command_prefix=";", intents=intents)
+bot = commands.Bot(command_prefix=">", intents=intents)
 
 # ============================================================
 # CONFIG
@@ -266,8 +266,45 @@ async def on_message(message):
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
+    # Sync slash commands
+    try:
+        await bot.sync_all_application_commands()
+        print("Slash commands synced!")
+    except Exception as e:
+        print(f"Error syncing commands: {e}")
     bot.loop.create_task(update_member_count())
     bot.loop.create_task(send_verification_message())
+
+# ============================================================
+# PREFIX COMMANDS
+# ============================================================
+@bot.command(name="afk")
+async def afk_prefix(ctx, *, reason="AFK"):
+    if not can_use_afk(ctx.author):
+        await ctx.send("This command is only permissable for usage by a DOT Rookie Operator+.")
+        return
+    
+    set_afk(ctx.author.id, reason)
+    
+    # Try to update nickname
+    try:
+        old_nick = ctx.author.display_name
+        if not old_nick.startswith("[AFK]"):
+            try:
+                await ctx.author.edit(nick=f"[AFK] {old_nick}")
+            except nextcord.Forbidden:
+                await ctx.author.send("I am unable to update your nickname due to your highest role being above my role. You are AFK though.")
+    except Exception:
+        pass
+    
+    embed1 = nextcord.Embed(
+        description=f"{ctx.author.mention}, you are now away from keyboard [AFK]. Anyone who mentions you will be notified of your status.",
+        color=SIDEBAR_COLOR
+    )
+    embed2 = nextcord.Embed(color=SIDEBAR_COLOR)
+    embed2.set_image(url=FOOTER_IMAGE)
+    
+    await ctx.send(embeds=[embed1, embed2])
 
 # ============================================================
 # RUN BOT
