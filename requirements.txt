@@ -1,3 +1,5 @@
 nextcord
 flask
+chat-exporter
 requests
+pytz
